@@ -1,4 +1,12 @@
 .venv/
+venv/
 .env
+# Google / GCP credential files
+gcloud-credentials.json
+service-account.json
+service-account-*.json
+*.credentials.json
+*.key.json
+
 *.pyc
 __pycache__/
