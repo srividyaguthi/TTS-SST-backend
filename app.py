@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify
 import logging
 import hashlib
+from google.cloud import speech
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -99,6 +100,45 @@ def tts():
     # ------------------------------------------------
 
     return jsonify({"url": f"/static/tts/{filename}"})
+
+# -------------------------
+# Speech-to-Text
+# -------------------------
+@app.route("/api/speech-to-text", methods=["POST"])
+def speech_to_text():
+    if "audio" not in request.files:
+        return jsonify({"error": "No audio file provided"}), 400
+
+    audio_file = request.files["audio"]
+    
+    # Initialize the Speech-to-Text client
+    client = speech.SpeechClient()
+
+    # Read the audio file content
+    audio_content = audio_file.read()
+
+    # Configure the recognition settings
+    audio = speech.RecognitionAudio(content=audio_content)
+    config = speech.RecognitionConfig(
+        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+        sample_rate_hertz=16000,
+        language_code="en-US",
+        enable_automatic_punctuation=True,
+    )
+
+    try:
+        # Perform the transcription
+        response = client.recognize(config=config, audio=audio)
+        
+        # Get the transcription text
+        transcript = ""
+        for result in response.results:
+            transcript += result.alternatives[0].transcript
+
+        return jsonify({"transcript": transcript})
+    except Exception as e:
+        logging.error(f"Speech-to-text error: {str(e)}")
+        return jsonify({"error": "Failed to process audio"}), 500
 
 
 # -------------------------
